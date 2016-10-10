@@ -30,11 +30,16 @@ Another checkbox of all states is provided to display the line graph of all the 
 
 ### REFERENCES
 Sonia’s data of unemployment rate is used.
+
 D3 brush and tool tip - (https://bl.ocks.org/wrobstory/7612013).
+
 Adding axis and labels to graph - (http://www.d3noob.org/2012/12/adding-axis-labels-to-d3js-graph.html).
+
 Map-(http://bl.ocks.org/mbostock/2206590).
     (https://vida.io/gists/FLFFovRPbu2t5QwQC).
+	
 Line graph - (http://bl.ocks.org/mbostock/3883245).
+
 Multi line series - (http://bl.ocks.org/mbostock/3884955).
 
 

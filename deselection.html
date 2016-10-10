@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<style>
+
+    
+
+    .inputs {
+    //      position:absolute;
+    //      top:50px;
+            padding:20px;
+            font-size:12px;
+            border:1px solid black;
+            height:450px;
+            font-family:segoe ui;
+    }
+
+    .part1,.part2,.part3,.part4,.part5,.part6 {
+            border:1px solid black;
+            float: left;
+            width:210px;
+
+    }
+
+    .yearpart {
+            border:1px solid #000;
+            position:absolute;
+            top:350px;
+    }
+
+    .graphdiv {
+            border:1px solid #000;
+    }
+   .graph path {
+     stroke: undefined;
+        stroke-width: 1;
+        fill: none;
+    }
+    
+
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: grey;
+        stroke-width: 1;
+        shape-rendering: crispEdges;
+    }
+    .state1{
+        float:right;
+    }
+
+     /*Map styles*/
+     .background {
+  fill: none;
+  pointer-events: all;
+}
+
+#states {
+  fill: #aaa;
+}
+
+#states .active {
+  fill: orange;
+}
+
+#state-borders {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.states-choropleth {
+  fill: #ccc;
+}
+#tooltip-container {
+  position: absolute;
+  background-color: #fff;
+  color: #000;
+  padding: 10px;
+  border: 1px solid;
+  display: none;
+}
+.tooltip_key {
+  font-weight: bold;
+}
+.brush .extent {
+  stroke: #FFF;
+  shape-rendering: crispEdges;
+}
+</style>
+</head>
+<body>
+<div id="tooltip-container"></div>
+<div class="row">
+    <div class="graph" style="width:60%;float:left">
+    </div>
+    <div class="map" style="width:40%;display:inline-block">
+    
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="https://d3js.org/topojson.v1.min.js"></script>
+<script>
+// Graph
+{
+
+    var margin = {top: 20, right: 20, bottom: 110, left: 40},
+    margin2 = {top: 430, right: 20, bottom: 30, left: 40},
+    width = 900 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom,
+    height2 = 500 - margin2.top - margin2.bottom-20;
+
+    var parseDate = d3.time.format("%d-%b-%y").parse;
+    var parseDate2 = d3.time.format("%B-%Y").parse;
+
+    var x = d3.time.scale().range([0, width]);
+    var x2 = d3.time.scale().range([0, width]);
+    
+    var y0 = d3.scale.linear().range([height, 0]);
+    //var y1 = d3.scale.linear().range([height, 0]);
+    //Brush code
+    var brush;
+    
+    
+    
+    //
+    var xAxis = d3.svg.axis().scale(x)
+    .orient("bottom");
+
+    var yAxisLeft = d3.svg.axis().scale(y0)
+        .orient("left");
+    var  xAxis2 = d3.svg.axis().scale(x2)
+    .orient("bottom");
+
+  
+    //var yAxisRight = d3.svg.axis().scale(y1)
+     //   .orient("right").ticks(10);
+
+    var valueline = d3.svg.line()
+        .x(function(d) { return x(d.date); })
+        .y(function(d) { return y0(d.unemplyment); });
+
+    var svg = d3.select(".graph")
+        .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+            .attr("transform",
+                  "translate(" + margin.left + "," + margin.top + ")");
+var context = svg.append("g")
+    .attr("class", "context")
+    .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
+
+
+    var color=d3.scale.category10();
+
+    var data = ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","District of Columbia","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
+
+    var select = d3.select('body')
+      .append('select')
+          .attr('class','select')
+        .on('change',onchange)
+
+    var options = select
+      .selectAll('option')
+        .data(data).enter()
+        .append('option')
+            .text(function (d) { return d; });
+
+    var select = d3.select('body')
+
+    //get the data
+    var dataAll={};
+    //var dataTX=[];
+
+    d3.csv("unemplyment.csv", function(error, data) {
+      data.forEach(function(d) {
+            if(dataAll[d.State]==undefined)
+            dataAll[d.State]=[];
+            dataAll[d.State].push(d);
+
+
+    // if(d.State=="Arkansas")    // used for a specific state.
+            //      dataCO.push(d);
+      });
+
+
+      for(var statename in dataAll) {
+      
+      dataAll[statename].forEach(function(d) {
+        d.date = parseDate2(d.Month+"-"+d.Year);
+        d.unemplyment = +d["Unemployment rates by State, not seasonally adjusted"];
+        d.marked = 0;
+
+      });
+
+            dataAll[statename].sort(function(a,b){
+        if (a.date<b.date)
+            return -1;
+        else if (a.date>b.date)
+            return 1;
+        else
+            return 0;
+      });
+    }
+
+
+            // Scale the range of the data
+        x.domain(d3.extent(dataAll["Indiana"], function(d) { return d.date; }));
+        y0.domain([0, 20]);
+        x2.domain(x.domain());
+        brush=d3.svg.brush().x(x2).on("brush", brushed);
+       // y1.domain([0, 25]);
+
+            var dataArray=[];
+            for(var statename in dataAll) {
+            dataArray.push(dataAll[statename]);
+
+            }
+
+            svg.selectAll(".line")
+            .data(dataArray).enter()
+            .append("path") 
+
+                   // Add the valueline path.
+            .attr("class", "line")
+            .attr("id","dlines")
+                    .attr("stroke-width", 1)
+                    .attr("stroke", function(d) {
+                    return color(d[0].State);
+                    })
+                  // .attr("stroke-width", 1)
+                  //   .attr("stroke", function(d) {
+                  //   return color(d[0].State);
+                  //   })
+                    
+                  //   .attr("d", function (d) {
+                  //   return valueline(d)
+                  //   });
+                    .on("mouseover", function(d1) {
+                    svg.selectAll(".line")
+                    .transition().duration(250)
+                    .attr("stroke-opacity", function(d2) {
+                    if(d1==d2)
+                    return 1;
+                    else
+                    return 0.05;
+                    });
+                    })
+                    .on("mouseout", function(d) {
+                    svg.selectAll(".line")
+                    .transition().duration(250)
+                    .attr("stroke-opacity", 1);
+                    });
+
+
+    /*      svg.selectAll(".line2")
+            .data(dataArray).enter()
+            .append("path")        // Add the valueline path.
+            .attr("class", ".line2")
+                    .attr("stroke-width", 15)
+
+                    .attr("stroke", function(d) {
+                    return color(d[0].State);
+                    })
+                    .attr("d", function (d) {
+                    return valueline(d)
+                    })
+                    .on("mouseover", function(d1) {
+                    svg.selectAll(".line")
+                    .transition().duration(250)
+                    .attr("stroke-opacity", function(d2) {
+                    if(d1==d2)
+                    return 1;
+                    else
+                    return 0.05;
+                    });
+                    })
+                    .on("mouseout", function(d) {
+                    svg.selectAll(".line")
+                    .transition().duration(250)
+                    .attr("stroke-opacity", 1);
+                    });     */
+
+
+    /*
+            // Draw circles for state 1
+        svg.selectAll("circle")
+          .data(dataTX).enter()
+          .append("circle")
+              .attr("class", "state1c")
+          .attr("stroke", "#000")
+          .attr("fill", function(d,i){
+            if (d.unemplyment<5)
+              return "#ccc";
+            else if (d.unemplyment>=5 && d.unemplyment<8)
+              return "#888";
+            else
+              return "#333";
+          })
+          .attr("cx", function(d){
+            return x(d.date);
+          })
+          .attr("cy", function(d){
+            return y0(d.unemplyment);
+          })
+          .attr("r", function(d){
+            return Math.pow(d.unemplyment, 0.1);
+          });
+
+    */
+
+
+
+            svg.selectAll(".line").append("title")
+            .text(function(d) {
+            return d[0].State;
+            });
+
+
+
+        svg.append("g")            // Add the X Axis
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis)
+        .style("font-size","14px");
+
+         // label for Y axis
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y",0 - margin.left) 
+        .attr("x",0 - (height / 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text("Unemployment rate");
+
+
+        svg.append("g")
+            .attr("class", "y axis")
+            .style("fill", "steelblue")
+            .call(yAxisLeft);
+
+            context.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height2 + ")")
+      .call(xAxis2);
+
+ 
+    context.append("rect")
+    .attr("width",width)
+    .attr("height", height2)
+    .attr("class","overlay")
+    .attr("fill","grey")
+  context.append("g")
+      .attr("class", "brush")
+      .call(brush)
+      .selectAll("rect")
+    .attr("height", height2) // Make brush rects same height 
+      .attr("fill", "#E6E7E8");
+    /*    svg.append("g")
+            .attr("class", "y axis")
+            .attr("transform", "translate(" + width + " ,0)")
+            .style("fill", "red")
+            .call(yAxisRight); */
+
+    });
+   
+}
+
+//Map
+{
+	var selectedStates=[];
+	var removedState;
+
+    var mapwidth = 500,
+      mapheight = 500,
+      centered;
+
+  var projection = d3.geo.albersUsa()
+      .scale(500)
+      .translate([mapwidth / 2, mapheight / 2]);
+
+  var path = d3.geo.path()
+      .projection(projection);
+
+  var mapSvg = d3.select(".map").append("svg")
+      .attr("width", mapwidth)
+      .attr("height", mapheight);
+
+  mapSvg.append("rect")
+      .attr("class", "background")
+      .attr("width", mapwidth)
+      .attr("height", mapheight)
+      .on("click", clicked);
+
+  var mapg = mapSvg.append("g");
+  d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
+    
+    name_id_map = {};
+    id_name_map = {};
+    
+    for (var i = 0; i < names.length; i++) {
+      name_id_map[names[i].name] = names[i].id;
+      id_name_map[names[i].id] = names[i].name;
+    }
+    
+    
+    });
+  d3.json("usstates.json", function(error, us) {
+    if (error) throw error;
+   var valueById = d3.map();
+    mapg.append("g")
+    .attr("class", "states-choropleth")
+        .attr("id", "states")
+      .selectAll("path")
+        .data(us.features)
+      .enter().append("path")
+        .attr("d", path)
+      /*.attr("test",function(d){
+      console.log(d);
+     // debugger;
+      })*/
+        .on("click", clicked)
+      .on("mousemove", function(d) {
+              var html = "";
+    
+              html += "<div class=\"tooltip_kv\">";
+              html += "<span class=\"tooltip_key\">";
+               html += d.properties.name;
+              html += "</span>";
+
+              html += "</div>";
+              
+              $("#tooltip-container").html(html);
+              $(this).attr("fill-opacity", "0.8");
+              $("#tooltip-container").show();
+              
+              var coordinates = d3.mouse(this);
+              
+              var map_width = $('.states-choropleth')[0].getBoundingClientRect().width;
+              
+              if (d3.event.layerX < map_width / 2) {
+                d3.select("#tooltip-container")
+                  .style("top", (d3.event.layerY + 15) + "px")
+                  .style("left", (d3.event.layerX + 15) + "px");
+              } else {
+                var tooltip_width = $("#tooltip-container").width();
+                d3.select("#tooltip-container")
+                  .style("top", (d3.event.layerY + 15) + "px")
+                  .style("left", (d3.event.layerX - tooltip_width - 30) + "px");
+              }
+          })
+          .on("mouseout", function() {
+                  $(this).attr("fill-opacity", "1.0");
+                  $("#tooltip-container").hide();
+              });
+      
+
+    mapg.append("path")
+        .datum(topojson.mesh(us, us.features, function(a, b) { return a !== b; }))
+        .attr("id", "state-borders")
+        .attr("d", path);
+      
+  });
+  
+function whenClick(clickD){
+	for(var i=0;i<data.length;i++){
+		if (data[i] == clickD.properties.name){
+			selectedStates.push(data[i]);
+		}
+	}
+		
+}
+
+function whenUnClick(clickD){
+	var del = selectedStates.indexOf(clickD.properties.name);
+	removedState = selectedStates[del];
+	if(del>-1){
+		selectedStates.splice(del,1);
+	}
+}
+
+  function clicked(d) {
+    var x, y, k;
+	if(!d3.select(this).classed("selected")){
+		d3.select(this).classed("selected", true)
+		/*svg.selectAll(".line")
+                    .attr("stroke-width", 1)
+                    .attr("stroke", function(d) {
+                    return color(d[0].State);
+                    })
+                    .filter(function(d1){
+                        	//console.log("fuckme : ",d1[0].marked)
+                        if(d1[0].State==d.properties.name && d1[0].marked == 0){
+                        	d1[0].marked = 1;
+                            return true;
+                        }
+                        else{
+                        return false;
+                        }
+                    })
+                    .attr("d", function (d) {
+                    console.log("dman : ", d);
+                    return valueline(d)
+                    });*/
+        //d3.selectAll("svg > g >*").remove();
+        whenClick(d)
+        //var col = color(d[0].State)
+        for(var i=0;i<selectedStates.length;i++){
+        	var temp = selectedStates[i].replace(" ","")
+        	d3.select("#"+temp).remove();
+        	console.log("temp",temp)
+        	svg.append("path")
+        		 .attr("class","line")
+        		.attr("id",temp)
+                .attr("stroke-width", 1)
+                .attr("stroke",color(selectedStates[i]))
+               .attr("d",valueline(dataAll[selectedStates[i]]));
+        }
+	console.log(selectedStates)
+	}
+	else if(d3.select(this).classed("selected")){
+		
+		d3.select(this).classed("selected",false)
+		/*svg.selectAll(".line")
+                    .attr("stroke-width", 1)
+                    .attr("stroke", function(d) {
+                    return color(d[0].State);
+                    })
+                    .filter(function(d1){
+                    
+                        if(d1[0].State==d.properties.name && d1[0].marked == 1){
+						console.log("check : " ,d1[0].marked)
+						d1[0].marked=0;
+                        	//console.log("fuckme : ",d1[0])
+                            return false;
+                        }
+                        else{
+                        	return true;
+                        }
+                    })
+                    .attr("d", function (d) {
+                    return valueline(d)
+                   // console.log("dddmannn : ", d);
+                    });*/
+		whenUnClick(d)
+		
+			var v=removedState.replace(" ","")
+			console.log("#"+v+".line")
+			d3.select("#"+v).remove();
+        	
+        
+     console.log(selectedStates)
+	}
+	
+
+/*
+    if (d && centered !== d) {
+      var centroid = path.centroid(d);
+      x = centroid[0];
+      y = centroid[1];
+      k = 4;
+      centered = d;
+    } else {
+      x = mapwidth / 2;
+      y = mapheight / 2;
+      k = 1;
+      centered = null;
+    }
+
+    mapg.selectAll("path")
+        .classed("active", centered && function(d) { return d === centered; });
+
+    mapg.transition()
+        .duration(750)
+        .attr("transform", "translate(" + mapwidth / 2 + "," + mapheight / 2 + ")scale(" + k + ")translate(" + -x + "," + -y + ")")
+        .style("stroke-width", 1.5 / k + "px");*/
+  }
+
+}
+function brushed() {
+   x.domain(brush.empty() ? x2.domain() : brush.extent()); // If brush is empty then reset the Xscale domain to default, if not then make it the brush extent 
+
+    svg.select(".x.axis") // replot xAxis with transition when brush used
+          .transition()
+          .call(xAxis);
+
+    //maxY = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
+   // yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
+    
+   // svg.select(".y.axis") // Redraw yAxis
+    //  .transition()
+    //  .call(yAxis);   
+
+   // issue.select("path") // Redraw lines based on brush xAxis scale and domain
+    //  .transition()
+    //  .attr("d", function(d){
+   //       return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
+   //   });
+    
+  };      
+
+</script>
+
+
+</div>
+</body>
+</html>

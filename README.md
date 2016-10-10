@@ -44,6 +44,6 @@ Multi line series - (http://bl.ocks.org/mbostock/3884955).
 
 
 ###Video
-![ScreenShot](https://github.com/sunandha21/sunandha21.github.io/blob/master/bandicam%202016-10-10%2010-59-29-000.mp4).
+![Video](https://github.com/sunandha21/sunandha21.github.io/blob/master/bandicam%202016-10-10%2010-59-29-000.mp4).
 
 

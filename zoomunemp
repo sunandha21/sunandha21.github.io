@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.area {
+  fill: steelblue;
+  clip-path: url(#clip);
+}
+
+.zoom {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
+path { 
+    stroke: blue;
+    stroke-width: 1;
+    fill: none;
+}
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+</style>
+<svg width="960" height="500"></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+/*var svg = d3.select("svg"),
+    margin = {top: 20, right: 20, bottom: 110, left: 40},
+    margin2 = {top: 430, right: 20, bottom: 30, left: 40},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom,
+    height2 = +svg.attr("height") - margin2.top - margin2.bottom; */
+
+/*var parseDate = d3.time.format("%d-%b-%y").parse; 
+var parseDate2 = d3.time.format("%B-%Y").parse; */
+
+// Adds the svg canvas
+var svg = d3.select("body")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", 
+              "translate(" + margin.left + "," + margin.top + ")");
+
+
+
+
+var parseDate = d3.timeParse("%d-%b-%y");
+var parseDate2 = d3.timeParse("%B-%Y");
+
+var x = d3.scaleTime().range([0, width]),
+    x2 = d3.scaleTime().range([0, width]),
+    y = d3.scaleLinear().range([height, 0]),
+    y2 = d3.scaleLinear().range([height2, 0]);
+
+var xAxis = d3.axisBottom(x),
+    xAxis2 = d3.axisBottom(x2),
+    yAxis = d3.axisLeft(y);
+
+var brush = d3.brushX()
+    .extent([[0, 0], [width, height2]])
+    .on("brush end", brushed);
+
+var zoom = d3.zoom()
+    .scaleExtent([1, Infinity])
+    .translateExtent([[0, 0], [width, height]])
+    .extent([[0, 0], [width, height]])
+    .on("zoom", zoomed);
+
+d3.csv("unemplyment.csv", type, function(error, data) {
+
+dataTX = [];  // Only time series for TX
+  data.forEach(function(d) {
+    if (d.State=="Texas")
+        dataTX.push(d);
+  });
+  
+  dataTX.forEach(function(d) {
+    d.date = parseDate2(d.Month+"-"+d.Year);
+    d.unemplyment = +d["Unemployment rates by State, not seasonally adjusted"];
+    //    dataTX.push(d);
+  });
+
+
+  dataTX.sort(function(a,b){
+    if (a.date<b.date)
+        return -1;
+    else if (a.date>b.date)
+        return 1;
+    else
+        return 0;
+  })  
+
+
+
+
+
+var area = d3.area()
+    .curve(d3.curveMonotoneX)
+    .x(function(d) { return x(d.date); })
+    .y0(height)
+    .y1(function(d) { return y(d.unemplyment); });
+
+var area2 = d3.area()
+    .curve(d3.curveMonotoneX)
+    .x(function(d) { return x2(d.date); })
+    .y0(height2)
+    .y1(function(d) { return y2(d.unemplyment); });
+
+// Define the line
+var valueline = d3.svg.line()
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.unemplyment); });
+
+
+
+
+
+svg.append("defs").append("clipPath")
+    .attr("id", "clip")
+  .append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+var focus = svg.append("g")
+    .attr("class", "focus")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var context = svg.append("g")
+    .attr("class", "context")
+    .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
+
+
+  if (error) throw error;
+
+  x.domain(d3.extent(dataTx, function(d) { return d.date; }));
+  y.domain([0, d3.max(dataTx, function(d) { return d.unemplyment; })]);
+  x2.domain(x.domain());
+  y2.domain(y.domain());
+
+   // Add the valueline path.
+    svg.append("path")
+        .attr("class", "line")
+        .attr("d", valueline(dataTX));
+
+
+  focus.append("path")
+      .datum(dataTx)
+      .attr("class", "area")
+      .attr("d", area);
+
+  focus.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+ // label for Y axis
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y",0 - margin.left) 
+        .attr("x",0 - (height / 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text("Unemployment rate");
+
+
+  focus.append("g")
+      .attr("class", "axis axis--y")
+      .call(yAxis);
+
+  context.append("path")
+      .datum(data)
+      .attr("class", "area")
+      .attr("d", area2);
+
+  context.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height2 + ")")
+      .call(xAxis2);
+
+  context.append("g")
+      .attr("class", "brush")
+      .call(brush)
+      .call(brush.move, x.range());
+
+  svg.append("rect")
+      .attr("class", "zoom")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      .call(zoom);
+});
+
+function brushed() {
+  if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") return; // ignore brush-by-zoom
+  var s = d3.event.selection || x2.range();
+  x.domain(s.map(x2.invert, x2));
+  focus.select(".area").attr("d", area);
+  focus.select(".axis--x").call(xAxis);
+  svg.select(".zoom").call(zoom.transform, d3.zoomIdentity
+      .scale(width / (s[1] - s[0]))
+      .translate(-s[0], 0));
+}
+
+function zoomed() {
+  if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") return; // ignore zoom-by-brush
+  var t = d3.event.transform;
+  x.domain(t.rescaleX(x2).domain());
+  focus.select(".area").attr("d", area);
+  focus.select(".axis--x").call(xAxis);
+  context.select(".brush").call(brush.move, x.range().map(t.invertX, t));
+}
+/*
+function type(d) {
+  d.date = parseDate(d.date);
+  d.unemplyment = +d.unemplyment;
+  return d; */
+}
+
+</script>

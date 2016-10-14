@@ -76,7 +76,7 @@
 }
 #tooltip-container {
   position: absolute;
-  background-color: #00FFFF;
+  background-color: #fff;
   color: #000;
   padding: 10px;
   border: 1px solid;
@@ -92,21 +92,20 @@
 </style>
 </head>
 <body>
- 
 <div id="tooltip-container"></div>
 <div class="row">
-    <div class="graph" style="width:70%;float:right">
+    <div class="graph" style="width:60%;float:left">
     </div>
-    <div class="map" style="width:30%;display:inline-block">
+    <div class="map" style="width:40%;display:inline-block">
     
     </div>
      
   </div>
 
 <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="https://d3js.org/d3.v3.min.js"></script>
 <script src="https://d3js.org/topojson.v1.min.js"></script>
-<script src="tooltiptool.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
 <script>
 var circlesg;
 
@@ -138,7 +137,7 @@ var tip;
     
     //
     var xAxis = d3.svg.axis().scale(x)
-    .orient("bottom").ticks(10);
+    .orient("bottom").ticks(20);
 
     var yAxisLeft = d3.svg.axis().scale(y0)
         .orient("left");
@@ -172,13 +171,6 @@ tip = d3.tip()
         //  console.log(d);
         return "<strong>" + d.State + " " + d.date.toDateString() + "</strong> <span style='color:red'>" + d.unemplyment+ "</span>";
     });
-svg.append("defs")
-    .append("clipPath")
-    .attr("id", "clip")
-    .append("rect")
-    .attr("width", width)
-    .attr("height", height);
-
 svg.call(tip); 
     var color=d3.scale.category20();
 
@@ -238,7 +230,6 @@ svg.call(tip);
             svg.selectAll(".line-graph")
             .data(dataArray).enter()
             .append("path") 
-            .attr("clip-path", "url(#clip)")
 
                    // Add the valueline path.
             .attr("class", "line-graph")
@@ -285,9 +276,6 @@ svg.call(tip);
 
       .on("mouseover",function(d){
         tip.show(d)
-      })
-      .on("mouseout",function(d){
-        tip.hide(d)
       })
      
 
@@ -575,23 +563,23 @@ function whenUnClick(clickD){
               });
 
                 circlesg.selectAll("circle")
-                /*.filter(function(d){
+                .filter(function(d){
                   if(stateSelected(d.State)){
                     return true;
                   }
                   else
                     return false;
-                })*/
+                })
       //.attr("stroke", "#000")
       .attr("fill-opacity", "0.0")
       .attr("cx", function(d){
-        return stateSelected(d.State)?x(d.date):null;
+        return x(d.date);
       })
       .attr("cy", function(d){
-        return stateSelected(d.State)?y0(d.unemplyment):null;
+        return y0(d.unemplyment);
       })
       .attr("r", function(d){
-        return stateSelected(d.State)?Math.pow(d.unemplyment, 0.8):null;
+        return Math.pow(d.unemplyment, 0.8);
       })
       .attr("title", function(d){
         return d.State+" "+d.unemplyment;
@@ -645,29 +633,6 @@ function whenUnClick(clickD){
                  return color(d[0].State)})
                .attr("d",null);
      console.log(selectedStates)
-        circlesg.selectAll("circle")
-                /*.filter(function(d){
-                  if(stateSelected(d.State)){
-                    return true;
-                  }
-                  else
-                    return false;
-                })*/
-      //.attr("stroke", "#000")
-      .attr("fill-opacity", "0.0")
-      .attr("cx", function(d){
-        return stateSelected(d.State)?x(d.date):null;
-      })
-      .attr("cy", function(d){
-        return stateSelected(d.State)?y0(d.unemplyment):null;
-      })
-      .attr("r", function(d){
-        return stateSelected(d.State)?Math.pow(d.unemplyment, 0.8):null;
-      })
-      .attr("title", function(d){
-        return d.State+" "+d.unemplyment;
-      });
-
   }
   
 
@@ -732,7 +697,6 @@ function brushed() {
                     return false;
                 })
                 .attr("stroke-width", 1)
-                .attr("clip-path", "url(#clip)")
                 .attr("stroke",function(d){
                  return color(d[0].State)})
                .attr("d",function(d){
@@ -785,9 +749,7 @@ function brushed() {
 	});
 	});
   svg.append("path")
-  .attr("clip-path", "url(#clip)")
   .attr("class","national");
-
 	var container1 = document.getElementById("checkbox1");
 	var cbox = document.createElement("input")
 	cbox.type = "checkbox"
@@ -849,55 +811,21 @@ function brushed() {
         		d3.select("#"+temp).remove();
         	}
         	d3.select("#ddstate").remove()
-			/*for(var i=0;i<data.length;i++){
+			for(var i=0;i<data.length;i++){
 				svg.append('path')
         		.attr('class','line')
         		.attr('id','allstates')
         		.attr("stroke-width", 1)
                 .attr("stroke",color(data[i]))
         		.attr('d',valueline(dataAll[data[i]]))
-			}*/
-      svg.selectAll(".line-graph")
-        .attr('d',function(d){
-          return valueline(d)}
-          )
-        mapg.selectAll(".map-path")
+			}
+      mapg.selectAll(".map-path")
       .attr("fill",function(d){
         return color(d.properties.name)
       })
-         selectedStates=[];
-        for(var i=0;i<data.length;i++){
-   
-      selectedStates.push(data[i]);
-    
-  }
-   circlesg.selectAll("circle")
-                /*.filter(function(d){
-                  if(stateSelected(d.State)){
-                    return true;
-                  }
-                  else
-                    return false;
-                })*/
-      //.attr("stroke", "#000")
-      .attr("fill-opacity", "0.0")
-      .attr("cx", function(d){
-        return stateSelected(d.State)?x(d.date):null;
-      })
-      .attr("cy", function(d){
-        return stateSelected(d.State)?y0(d.unemplyment):null;
-      })
-      .attr("r", function(d){
-        return stateSelected(d.State)?Math.pow(d.unemplyment, 0.8):null;
-      })
-      .attr("title", function(d){
-        return d.State+" "+d.unemplyment;
-      });
-
-
 		}
 		if(!this.checked){
-		/*	d3.selectAll("#allstates").remove()
+			d3.selectAll("#allstates").remove()
 			for(var i=0;i<selectedStates.length;i++){
 				var temp = selectedStates[i].replace(" ","")
 				svg.append('path')
@@ -906,40 +834,7 @@ function brushed() {
         		.attr("stroke-width", 1)
                 .attr("stroke",color(selectedStates[i]))
         		.attr('d',valueline(dataAll[selectedStates[i]]))
-			}*/
-      svg.selectAll(".line-graph")
-        .attr('d',function(d){
-          return null}
-          )
-       mapg.selectAll(".map-path")
-      .attr("fill",function(d){
-        return "#aaa"
-      })
-      selectedStates=[];
-         circlesg.selectAll("circle")
-                /*.filter(function(d){
-                  if(stateSelected(d.State)){
-                    return true;
-                  }
-                  else
-                    return false;
-                })*/
-      //.attr("stroke", "#000")
-      .attr("fill-opacity", "0.0")
-      .attr("cx", function(d){
-        return stateSelected(d.State)?x(d.date):null;
-      })
-      .attr("cy", function(d){
-        return stateSelected(d.State)?y0(d.unemplyment):null;
-      })
-      .attr("r", function(d){
-        return stateSelected(d.State)?Math.pow(d.unemplyment, 0.8):null;
-      })
-      .attr("title", function(d){
-        return d.State+" "+d.unemplyment;
-      });
-
-
+			}
 		}
 	}
 	var labell = document.createElement('label');
@@ -960,7 +855,6 @@ function brushed() {
                 selectedStates.push(d[0].State);
                return valueline(d)
               });
-              
              }
         else{
           selectedStates=[];
